@@ -12,17 +12,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Show Vault Address
+        run: |
+          echo "Vault address from secrets:"
+          echo "${{ secrets.VAULT_ADDR }}"
+
       - name: Get OIDC Token
         id: oidc
         run: |
-          echo "Fetching OIDC token... $ACTIONS_ID_TOKEN_REQUEST_TOKEN  $ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault "
-          curl -v -s \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault"
+          echo "Fetching OIDC token..."
+
           OIDC_RESPONSE=$(curl -s \
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault")
 
+          echo "OIDC Response:"
           echo "$OIDC_RESPONSE" | jq .
 
           OIDC_TOKEN=$(echo "$OIDC_RESPONSE" | jq -r '.value')
@@ -33,20 +37,23 @@ jobs:
           fi
 
           echo "oidc_token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
+          echo "OIDC token extracted successfully."
 
-      - name: Login to Vault
+      - name: Login to Vault using JWT
         id: vault
         run: |
-          echo "Building JSON via jq (safe)..."
+          echo "Building JSON payload for Vault login..."
 
           jq -n --arg jwt "${{ steps.oidc.outputs.oidc_token }}" \
                 --arg role "github-actions" \
                 '{jwt: $jwt, role: $role}' > payload.json
 
-          echo "Payload created:"
+          echo "Payload content:"
           cat payload.json | jq .
 
-          echo "Calling Vault..."
+          echo "Calling Vault at:"
+          echo "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login"
+
           LOGIN_RESPONSE=$(curl -s \
             --header "Content-Type: application/json" \
             --data @payload.json \
@@ -67,13 +74,17 @@ jobs:
 
       - name: Test Transit Signing
         run: |
+          echo "Creating signing payload..."
           jq -n --arg input "ZmFrZS1kaWdlc3Q=" '{input:$input}' > sign.json
 
-          echo "Calling Vault transit sign API..."
+          echo "Calling Vault Transit at:"
+          echo "${{ secrets.VAULT_ADDR }}/v1/transit/sign/gha-signing-key"
+
           SIGN_RESPONSE=$(curl -s \
             --header "X-Vault-Token: ${{ steps.vault.outputs.vault_token }}" \
             --header "Content-Type: application/json" \
             --data @sign.json \
             "${{ secrets.VAULT_ADDR }}/v1/transit/sign/gha-signing-key")
 
+          echo "Transit sign response:"
           echo "$SIGN_RESPONSE" | jq .
