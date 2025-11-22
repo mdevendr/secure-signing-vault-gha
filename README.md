@@ -34,12 +34,6 @@ This pattern integrates **OIDC identity**, **non‑exportable keys**, and **Vaul
 - Every signature tied to:  
   `{repository → branch → actor → workflow → commit}`  
 
-These are direct requirements from:
-
-- **SLSA** (Supply‑chain Levels for Software Artifacts)  
-- **NIST SSDF** (Secure Software Development Framework)  
-- **CNCF Secure Supply Chain** (cloud‑native integrity model)  
-
 ---
 
 ## 🧩 Architecture Summary
@@ -98,17 +92,6 @@ It is intentionally minimal to focus on the **security architecture**, not produ
 
 ## 📎 Appendix — Quick Definitions (with Official Links)
 
-### **SLSA (Supply‑chain Levels for Software Artifacts)**  
-A software supply‑chain security framework defining integrity, provenance, and tamper‑resistant builds.  
-🔗 https://slsa.dev
-
-### **NIST SSDF (Secure Software Development Framework)**  
-The U.S. guideline for secure software development and CI/CD integrity.  
-🔗 https://csrc.nist.gov/publications/detail/sp/800-218/final
-
-### **CNCF Secure Supply Chain Framework**  
-A cloud‑native architecture blueprint for artifact signing and runtime verification.  
-🔗 https://tag-security.cncf.io/
 
 ### **HashiCorp Vault Transit Engine**  
 Cryptographic service for encryption, signing, and verification using non‑exportable keys.  
