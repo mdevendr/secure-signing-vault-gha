@@ -108,7 +108,7 @@ The U.S. guideline for secure software development and CI/CD integrity.
 
 ### **CNCF Secure Supply Chain Framework**  
 A cloud‑native architecture blueprint for artifact signing and runtime verification.  
-🔗 https://tag-security.cncf.io/supply-chain/
+🔗 https://tag-security.cncf.io/
 
 ### **HashiCorp Vault Transit Engine**  
 Cryptographic service for encryption, signing, and verification using non‑exportable keys.  
