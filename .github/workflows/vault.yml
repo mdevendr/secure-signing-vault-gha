@@ -15,7 +15,10 @@ jobs:
       - name: Get OIDC Token
         id: oidc
         run: |
-          echo "Fetching OIDC token..."
+          echo "Fetching OIDC token... $ACTIONS_ID_TOKEN_REQUEST_TOKEN  $ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault "
+          curl -v -s \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault"
           OIDC_RESPONSE=$(curl -s \
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault")
