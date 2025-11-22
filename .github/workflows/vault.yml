@@ -53,7 +53,14 @@ jobs:
 
           echo "Calling Vault at:"
           echo "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login"
-
+          echo curl -s \
+            --header "Content-Type: application/json" \
+            --data @payload.json \
+            "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login
+          curl -v -s \
+            --header "Content-Type: application/json" \
+            --data @payload.json \
+            "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login
           LOGIN_RESPONSE=$(curl -s \
             --header "Content-Type: application/json" \
             --data @payload.json \
