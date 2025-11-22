@@ -10,6 +10,7 @@ permissions:
 jobs:
   test-vault-oidc:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Show Vault Address
