@@ -13,6 +13,9 @@ jobs:
     environment: production
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+    
       - name: Get OIDC Token
         id: oidc
         run: |
@@ -55,23 +58,23 @@ jobs:
         id: build
         run: |
           docker build -t demo-image:latest .
-      
+    
           DIGEST=$(docker image inspect demo-image:latest --format='{{index .Id}}' | sed 's/sha256://')
-      
+    
           if [ -z "$DIGEST" ]; then
             echo "ERROR: Failed to extract image digest."
             exit 1
           fi
-      
+    
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-      
+    
           DIGESTB64=$(echo -n "$DIGEST" | xxd -r -p | base64)
-      
+    
           if [ -z "$DIGESTB64" ]; then
             echo "ERROR: Failed to convert digest to base64."
             exit 1
           fi
-      
+    
           echo "b64=$DIGESTB64" >> $GITHUB_OUTPUT
 
 
