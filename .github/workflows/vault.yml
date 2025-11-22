@@ -12,44 +12,71 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug OIDC Token
+      - name: Get OIDC Token
         id: oidc
         run: |
-          TOKEN=$(curl -s \
+          echo "Fetching OIDC token from GitHub..."
+          OIDC_RESPONSE=$(curl -s \
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault")
-          
-          echo "oidc_token=$TOKEN" >> $GITHUB_OUTPUT
-          echo "OIDC Token received."
+
+          echo "Full OIDC response:"
+          echo "$OIDC_RESPONSE" | jq .
+
+          # Extract ONLY the JWT string
+          OIDC_TOKEN=$(echo "$OIDC_RESPONSE" | jq -r '.value')
+
+          if [ -z "$OIDC_TOKEN" ] || [ "$OIDC_TOKEN" = "null" ]; then
+            echo "Failed to fetch OIDC token!"
+            exit 1
+          fi
+
+          echo "oidc_token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
+          echo "OIDC Token successfully retrieved."
 
       - name: Login to Vault via JWT
         id: vault
         run: |
+          echo "Preparing Vault login payload..."
+
+          # Build JSON without escaping hell
+          read -r -d '' PAYLOAD <<EOF
+{
+  "jwt": "${{ steps.oidc.outputs.oidc_token }}",
+  "role": "github-actions"
+}
+EOF
+
+          echo "Sending login request to Vault..."
           LOGIN_RESPONSE=$(curl -s \
             --request POST \
-            --data "{\"jwt\": \"${{ steps.oidc.outputs.oidc_token }}\", \"role\": \"github-actions\"}" \
-            ${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login)
+            --header "Content-Type: application/json" \
+            --data "$PAYLOAD" \
+            "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login")
 
           echo "Vault login response:"
           echo "$LOGIN_RESPONSE" | jq .
 
           CLIENT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.auth.client_token')
-          
-          if [ "$CLIENT_TOKEN" = "null" ]; then
-            echo "Vault login FAILED."
+
+          if [ -z "$CLIENT_TOKEN" ] || [ "$CLIENT_TOKEN" = "null" ]; then
+            echo "Vault login FAILED!"
             exit 1
           fi
 
           echo "vault_token=$CLIENT_TOKEN" >> $GITHUB_OUTPUT
           echo "Vault login SUCCESS."
 
-      - name: Test Transit Signing (Optional)
+      - name: Test Transit Signing
         run: |
+          echo "Testing Transit signing using Vault token..."
+
           SIGN_RESPONSE=$(curl -s \
             --request POST \
             --header "X-Vault-Token: ${{ steps.vault.outputs.vault_token }}" \
+            --header "Content-Type: application/json" \
             --data '{"input": "ZmFrZS1kaWdlc3Q="}' \
-            ${{ secrets.VAULT_ADDR }}/v1/transit/sign/gha-signing-key)
+            "${{ secrets.VAULT_ADDR }}/v1/transit/sign/gha-signing-key")
 
           echo "Transit sign response:"
           echo "$SIGN_RESPONSE" | jq .
