@@ -1,5 +1,9 @@
 # Secure CI/CD Signing with GitHub Actions and HashiCorp Vault Transit
 
+Multi-Cloud Architect & DevOps Leader | AWS | Azure | GCP | Kubernetes | CKA & Terraform Certified | GenAI & Automation
+LinkedIn : https://www.linkedin.com/in/mahesh-devendran-83a3b214/
+---
+
 This repository demonstrates the architectural pattern for building **Zero‑Trust, identity‑driven CI/CD signing pipelines** using:
 
 - **GitHub Actions OIDC** (no long‑lived credentials)
