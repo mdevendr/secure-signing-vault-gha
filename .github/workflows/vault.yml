@@ -53,11 +53,10 @@ jobs:
 
       - name: Build Demo Image
         id: build
-        working-directory: demo-image
         run: |
-          docker build -t demo-image:latest .
+          docker build -t dockerfile:latest .
 
-          DIGEST=$(docker image inspect demo-image:latest --format='{{index .Id}}' | sed 's/sha256://')
+          DIGEST=$(docker image inspect dockerfile:latest --format='{{index .Id}}' | sed 's/sha256://')
 
           if [ -z "$DIGEST" ]; then
             echo "ERROR: Failed to extract image digest."
