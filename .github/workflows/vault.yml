@@ -39,6 +39,11 @@ jobs:
 
           echo "oidc_token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
           echo "OIDC token extracted successfully."
+      - name: Decode JWT (debug)
+        run: |
+          echo "${{ steps.oidc.outputs.oidc_token }}" > jwt.txt
+          echo "Decoded JWT:"
+          cat jwt.txt | awk -F '.' '{print $2}' | base64 -d | jq .
 
       - name: Login to Vault using JWT
         id: vault
