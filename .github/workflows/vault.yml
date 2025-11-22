@@ -13,85 +13,74 @@ jobs:
     environment: production
 
     steps:
-      - name: Show Vault Address
-        run: |
-          echo "Vault address from secrets:"
-          echo "${{ secrets.VAULT_ADDR }}"
-
       - name: Get OIDC Token
         id: oidc
         run: |
-          echo "Fetching OIDC token..."
-
           OIDC_RESPONSE=$(curl -s \
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=vault")
 
-          echo "OIDC Response:"
-          echo "$OIDC_RESPONSE" | jq .
-
           OIDC_TOKEN=$(echo "$OIDC_RESPONSE" | jq -r '.value')
 
           if [ -z "$OIDC_TOKEN" ] || [ "$OIDC_TOKEN" = "null" ]; then
-            echo "Failed to fetch OIDC token."
+            echo "ERROR: Failed to fetch OIDC token."
             exit 1
           fi
 
           echo "oidc_token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
-          echo "OIDC token extracted successfully."
-      - name: Decode JWT (debug)
-        run: |
-          echo "${{ steps.oidc.outputs.oidc_token }}" > jwt.txt
-          echo "Decoded JWT:"
-          cat jwt.txt | awk -F '.' '{print $2}' | base64 -d | jq .
 
       - name: Login to Vault using JWT
         id: vault
         run: |
-          echo "Building JSON payload for Vault login..."
+          jq -n \
+            --arg jwt "${{ steps.oidc.outputs.oidc_token }}" \
+            --arg role "github-actions" \
+            '{jwt: $jwt, role: $role}' > payload.json
 
-          jq -n --arg jwt "${{ steps.oidc.outputs.oidc_token }}" \
-                --arg role "github-actions" \
-                '{jwt: $jwt, role: $role}' > payload.json
-
-          echo "Payload content:"
-          cat payload.json | jq .
-
-          echo "Calling Vault at:"
-          echo "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login"
-          echo curl -s \
-            --header "Content-Type: application/json" \
-            --data @payload.json \
-            "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login
-          curl -v -s \
-            --header "Content-Type: application/json" \
-            --data @payload.json \
-            "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login
           LOGIN_RESPONSE=$(curl -s \
             --header "Content-Type: application/json" \
             --data @payload.json \
             "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login")
 
-          echo "Vault login response:"
-          echo "$LOGIN_RESPONSE" | jq .
-
           CLIENT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.auth.client_token')
 
           if [ -z "$CLIENT_TOKEN" ] || [ "$CLIENT_TOKEN" = "null" ]; then
-            echo "Vault login FAILED."
+            echo "ERROR: Vault login failed."
             exit 1
           fi
 
           echo "vault_token=$CLIENT_TOKEN" >> $GITHUB_OUTPUT
-          echo "Vault login SUCCESS."
+
+      - name: Build Demo Image
+        id: build
+        working-directory: demo-image
+        run: |
+          docker build -t demo-image:latest .
+
+          DIGEST=$(docker image inspect demo-image:latest --format='{{index .Id}}' | sed 's/sha256://')
+
+          if [ -z "$DIGEST" ]; then
+            echo "ERROR: Failed to extract image digest."
+            exit 1
+          fi
+
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+          DIGESTB64=$(echo -n "$DIGEST" | xxd -r -p | base64)
+
+          if [ -z "$DIGESTB64" ]; then
+            echo "ERROR: Failed to convert digest to base64."
+            exit 1
+          fi
+
+          echo "b64=$DIGESTB64" >> $GITHUB_OUTPUT
 
       - name: Test Transit Signing
+        id: sign
         run: |
-          echo "Creating signing payload..."
-          jq -n --arg input "ZmFrZS1kaWdlc3Q=" '{input:$input}' > sign.json
-
-          echo "Calling Vault Transit at:"
-          echo "${{ secrets.VAULT_ADDR }}/v1/transit/sign/gha-signing-key"
+          jq -n \
+            --arg input "${{ steps.build.outputs.b64 }}" \
+            '{input: $input}' > sign.json
 
           SIGN_RESPONSE=$(curl -s \
             --header "X-Vault-Token: ${{ steps.vault.outputs.vault_token }}" \
@@ -99,5 +88,12 @@ jobs:
             --data @sign.json \
             "${{ secrets.VAULT_ADDR }}/v1/transit/sign/gha-signing-key")
 
-          echo "Transit sign response:"
-          echo "$SIGN_RESPONSE" | jq .
+          SIG=$(echo "$SIGN_RESPONSE" | jq -r '.data.signature')
+
+          if [ -z "$SIG" ] || [ "$SIG" = "null" ]; then
+            echo "ERROR: Transit signing failed."
+            exit 1
+          fi
+
+          echo "Signature successfully produced."
+          echo "signature=$SIG" >> $GITHUB_OUTPUT
