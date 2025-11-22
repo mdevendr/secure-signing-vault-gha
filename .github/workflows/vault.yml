@@ -34,8 +34,14 @@ jobs:
       - name: Login to Vault
         id: vault
         run: |
-          echo "Creating Vault login payload..."
-          echo "{\"jwt\": \"${{ steps.oidc.outputs.oidc_token }}\", \"role\": \"github-actions\"}" > payload.json
+          echo "Building JSON via jq (safe)..."
+
+          jq -n --arg jwt "${{ steps.oidc.outputs.oidc_token }}" \
+                --arg role "github-actions" \
+                '{jwt: $jwt, role: $role}' > payload.json
+
+          echo "Payload created:"
+          cat payload.json | jq .
 
           echo "Calling Vault..."
           LOGIN_RESPONSE=$(curl -s \
@@ -43,6 +49,7 @@ jobs:
             --data @payload.json \
             "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login")
 
+          echo "Vault login response:"
           echo "$LOGIN_RESPONSE" | jq .
 
           CLIENT_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.auth.client_token')
@@ -57,9 +64,9 @@ jobs:
 
       - name: Test Transit Signing
         run: |
-          echo "Testing Vault transit sign API..."
-          echo '{"input": "ZmFrZS1kaWdlc3Q="}' > sign.json
+          jq -n --arg input "ZmFrZS1kaWdlc3Q=" '{input:$input}' > sign.json
 
+          echo "Calling Vault transit sign API..."
           SIGN_RESPONSE=$(curl -s \
             --header "X-Vault-Token: ${{ steps.vault.outputs.vault_token }}" \
             --header "Content-Type: application/json" \
