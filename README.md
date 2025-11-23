@@ -61,7 +61,7 @@ The resulting signature can be published, stored, or verified in downstream syst
 
 ---
 
-## 🔒 Root of Trust (Optional Architectural Note)
+## 🔒 Root of Trust 
 
 In production deployments, Vault is typically bootstrapped with **AWS KMS Auto‑Unseal**, ensuring:
 
@@ -90,7 +90,7 @@ It is intentionally minimal to focus on the **security architecture**, not produ
 
 ---
 
-## 📎 Appendix — Quick Definitions (with Official Links)
+## 📎 Appendix — Quick Definitions 
 
 
 ### **HashiCorp Vault Transit Engine**  
