@@ -90,7 +90,7 @@ This repository contains a GitHub Actions workflow that demonstrates:
 It is intentionally minimal to focus on the **security architecture**, not productizing a full CI/CD system.
 
 ---
-Read More @  
+🔗 Full article:
 
 https://medium.com/@mahesh.devendran/building-secure-signing-pipelines-with-github-actions-and-hashicorp-vault-transit-746c68a06928
 ---
