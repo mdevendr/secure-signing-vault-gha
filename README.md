@@ -37,6 +37,7 @@ This pattern integrates **OIDC identity**, **non‑exportable keys**, and **Vaul
 ---
 
 ## 🧩 Architecture Summary
+<img width="4700" height="1000" alt="ContainerImageSigningVaultTransit" src="https://github.com/user-attachments/assets/9f228312-f7d8-44e4-aabd-cb2821974a93" />
 
 ### 1. GitHub → OIDC Token  
 The workflow obtains a **short‑lived identity token** scoped to repo/branch/environment.
